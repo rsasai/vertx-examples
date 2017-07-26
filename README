@@ -1,0 +1,49 @@
+
+//===================================================//
+// MVP (Minimum Viable Product) using vert.x
+// @author Ryu sasai rsasai@centiq.co.uk
+// @since  26.07.2017
+//===================================================//
+
+//---------------------------------//
+// vert.x
+//---------------------------------//
+
+> cd /root/workspace
+> mkdir -p mvp-vertx/lib-ext
+> cd lib-ext
+> wget https://bintray.com/artifact/download/vertx/downloads/vert.x-3.4.2-full.tar.gz
+> https://bintray.com/artifact/download/vertx/downloads/vert.x-3.4.2-full.tar.gz
+> tar -xzvf vert.x-3.4.2-full.tar.gz
+... skipping PATH setting for vertx command ...
+> /root/workspace/mvp-vertx/lib-ext/vertx/bin/vertx -version
+
+//---------------------------------//
+// vert.x examples
+//---------------------------------//
+
+Fork https://github.com/vert-x3/vertx-examples on RS company repo https://github.com/rsasai
+> cd /root/workspace/mvp-vertx
+> git clone git@github.com:rsasai/vertx-examples.git
+> git checkout -b devel
+> git push origin devel
+
+//---------------------------------//
+// run vert.x examples
+//---------------------------------//
+
+//
+// event bus: pub/sub
+//
+
+# console 1: sender
+> pushd /root/workspace/mvp-vertx/vertx-examples/core-examples/src/main/java/io/vertx/example/core/eventbus/pubsub
+> /root/workspace/mvp-vertx/lib-ext/vertx/bin/vertx run Sender.java -cluster
+
+# console 2: receiver
+> pushd /root/workspace/mvp-vertx/vertx-examples/core-examples/src/main/java/io/vertx/example/core/eventbus/pubsub
+> /root/workspace/mvp-vertx/lib-ext/vertx/bin/vertx run Receiver.java -cluster
+
+# console 3: receiver
+> pushd /root/workspace/mvp-vertx/vertx-examples/core-examples/src/main/java/io/vertx/example/core/eventbus/pubsub
+> /root/workspace/mvp-vertx/lib-ext/vertx/bin/vertx run Receiver.java -cluster
