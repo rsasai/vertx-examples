@@ -1,0 +1,4 @@
+#!/bin/bash
+clear
+/root/workspace/mvp-vertx/lib-ext/vertx/bin/vertx run CentiqSenderReceiver.java -cluster
+
