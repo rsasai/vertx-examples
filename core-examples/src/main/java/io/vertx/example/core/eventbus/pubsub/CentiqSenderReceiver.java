@@ -16,6 +16,9 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		Runner.runClusteredExample(CentiqSenderReceiver.class);
 	}
 
+	public static final String ANSI_RED = "\u001B[31m";
+	public static final String ANSI_RESET = "\u001B[0m";
+
 	@Override
 	public void start() throws Exception {
 
@@ -25,18 +28,21 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		// sender role
 		vertx.setPeriodic(
 				getRandom(20000, 5000),
-				v -> eb.publish(eb_addr,
-						String.format("%s: %s %s %s",
-								getObjNameForHuman(this),
-								"\"Change schedule of memory agent to every",
-								getRandom(600, 10),
-								"seconds\"")));
+				v -> {
+					String msg = String.format("%s: %s %s %s",
+							getObjNameForHuman(this),
+							"\"Change schedule of memory agent to every",
+							getRandom(600, 10),
+							"seconds\"");
+					eb.publish(eb_addr, msg);
+					System.out.println(ANSI_RED + msg + ANSI_RESET);
+				});
 
 		// receiver role
 		eb.consumer(eb_addr, message -> {
 			if ( isMyCommand(message) ) {
 				// my publication; ignore
-				System.out.println("... ignoring my own command ...");
+//				System.out.println("... ignoring my own command ...");
 				return;
 			}
 			System.out.println("Received command from " + message.body());	
