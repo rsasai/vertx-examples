@@ -29,48 +29,56 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 
 		// sender role
 		vertx.setPeriodic(
-				getRandom(20000, 5000),
+				CentiqUtil.getRandom(20000, 5000),
 				v -> {
-					String msg = createPubMessage(MODE);
+					String msg = CentiqMessage.createPubMessage(MODE, this);
+					CentiqUtil.clearConsole();
+					System.out.println(ANSI_RED + CentiqMessage.getPubMessageConsole(MODE, msg) + ANSI_RESET);
 					eb.publish(eb_addr, msg);
-					clearConsole();
-					System.out.println(ANSI_RED + getPubMessageConsole(MODE, msg) + ANSI_RESET);
 				});
 
 		// receiver role
 		eb.consumer(eb_addr, message -> {
-			if ( isMyCommand(message) ) {
+			if ( CentiqMessage.isMyCommand(message, this) ) {
 				// my publication; ignore
 //				System.out.println("... ignoring my own command ...");
 				return;
 			}
-			clearConsole();
-			System.out.println(getSubMessageConsole(MODE, message.body().toString()));
+			CentiqUtil.clearConsole();
+			System.out.println(CentiqMessage.getSubMessageConsole(MODE, message.body().toString()));
 		});
 
 		// introduce self
-		System.out.printf( "I am host-\"%s\"\n", getObjNameForHuman(this) );
+		System.out.printf( "I am host-\"%s\"\n", CentiqMessage.getObjNameForHuman(this) );
 	}
+}
 
-	private String createPubMessage(String mode) {
+/**
+ * Centiq Message class
+ * @author rsasai
+ * @since  1 Aug 2017
+ */
+class CentiqMessage {
+
+	static String createPubMessage(String mode, Object obj) {
 		switch (mode) {
 			case "demo":
 				return String.format("%s: %s %s",
-						getObjNameForHuman(this),
+						getObjNameForHuman(obj),
 						"random number",
-						getRandom(1000, 100));
+						CentiqUtil.getRandom(1000, 100));
 			case "detail":
 				return String.format("%s: %s %s %s",
-						getObjNameForHuman(this),
+						getObjNameForHuman(obj),
 						"\"Change schedule of memory agent to every",
-						getRandom(600, 10),
+						CentiqUtil.getRandom(600, 10),
 						"seconds\"");
 			default:
 				throw new IllegalArgumentException("no such message mode");
 		}
 	}
 
-	private String getPubMessageConsole(String mode, String msg) {
+	static String getPubMessageConsole(String mode, String msg) {
 		switch (mode) {
 			case "demo":
 				return msg.replaceFirst("host.*: ", "Publishing ");
@@ -81,7 +89,7 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		}
 	}
 
-	private String getSubMessageConsole(String mode, String msg) {
+	static String getSubMessageConsole(String mode, String msg) {
 		switch (mode) {
 			case "demo":
 				return "Received: " + msg.replaceFirst("host.*: random number ", "");
@@ -92,20 +100,28 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		}
 	}
 
-	private void clearConsole() {
+	static boolean isMyCommand(Message<Object> message, Object obj) {
+		return message.body().toString().startsWith( getObjNameForHuman(obj) );
+	}
+
+	static String getObjNameForHuman(Object obj) {
+		return "host-" + obj.toString().replaceAll("^.*@", "").substring(0, 3);
+	}
+}
+
+/**
+ * Centiq Utility class
+ * @author rsasai
+ * @since  1 Aug 2017
+ */
+class CentiqUtil {
+
+	public static void clearConsole() {
 		System.out.println( "\033[2J");		// clear the screen
 		System.out.println( "\033[0;0H");	// jump to 0,0
 	}
 
-	private boolean isMyCommand(Message<Object> message) {
-		return message.body().toString().startsWith( getObjNameForHuman(this) );
-	}
-
-	private String getObjNameForHuman(Object obj) {
-		return "host-" + obj.toString().replaceAll("^.*@", "").substring(0, 3);
-	}
-
-	private int getRandom(int max, int min) {
+	public static int getRandom(int max, int min) {
 		return (int)(Math.random() * ((max - min) + 1)) + min;
 	}
 }
