@@ -29,12 +29,10 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		vertx.setPeriodic(
 				getRandom(20000, 5000),
 				v -> {
-					String msg = String.format("%s: %s %s %s",
-							getObjNameForHuman(this),
-							"\"Change schedule of memory agent to every",
-							getRandom(600, 10),
-							"seconds\"");
+					String msg = getMessage("demo");
+//					String msg = getMessage("detail");
 					eb.publish(eb_addr, msg);
+					clearConsole();
 					System.out.println(ANSI_RED + msg + ANSI_RESET);
 				});
 
@@ -45,11 +43,35 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 //				System.out.println("... ignoring my own command ...");
 				return;
 			}
-			System.out.println("Received command from " + message.body());	
+			clearConsole();
+			System.out.println("Received: " + message.body());
 		});
 
 		// introduce self
-		System.out.printf( "I am host-\"%s\"\n", getObjNameForHuman(this) );	
+		System.out.printf( "I am host-\"%s\"\n", getObjNameForHuman(this) );
+	}
+
+	private String getMessage(String mode) {
+		switch (mode) {
+			case "demo":
+				return String.format("%s: %s %s",
+						getObjNameForHuman(this),
+						"random number",
+						getRandom(1000, 100));
+			case "detail":
+				return String.format("%s: %s %s %s",
+						getObjNameForHuman(this),
+						"\"Change schedule of memory agent to every",
+						getRandom(600, 10),
+						"seconds\"");
+			default:
+				throw new IllegalArgumentException("no such message mode");
+		}
+	}
+
+	private void clearConsole() {
+	    System.out.println( "\033[2J");		// clear the screen
+	    System.out.println( "\033[0;0H");	// jump to 0,0
 	}
 
 	private boolean isMyCommand(Message<Object> message) {
