@@ -19,6 +19,8 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 	public static final String ANSI_RED = "\u001B[31m";
 	public static final String ANSI_RESET = "\u001B[0m";
 
+	private static final String MODE = "demo";				// demo, detail, etc.
+
 	@Override
 	public void start() throws Exception {
 
@@ -29,11 +31,10 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		vertx.setPeriodic(
 				getRandom(20000, 5000),
 				v -> {
-					String msg = getMessage("demo");
-//					String msg = getMessage("detail");
+					String msg = createPubMessage(MODE);
 					eb.publish(eb_addr, msg);
 					clearConsole();
-					System.out.println(ANSI_RED + msg + ANSI_RESET);
+					System.out.println(ANSI_RED + getPubMessageConsole(MODE, msg) + ANSI_RESET);
 				});
 
 		// receiver role
@@ -44,14 +45,14 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 				return;
 			}
 			clearConsole();
-			System.out.println("Received: " + message.body());
+			System.out.println(getSubMessageConsole(MODE, message.body().toString()));
 		});
 
 		// introduce self
 		System.out.printf( "I am host-\"%s\"\n", getObjNameForHuman(this) );
 	}
 
-	private String getMessage(String mode) {
+	private String createPubMessage(String mode) {
 		switch (mode) {
 			case "demo":
 				return String.format("%s: %s %s",
@@ -69,9 +70,31 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		}
 	}
 
+	private String getPubMessageConsole(String mode, String msg) {
+		switch (mode) {
+			case "demo":
+				return msg.replaceFirst("host.*: ", "Publishing ");
+			case "detail":
+				return msg;
+			default:
+				throw new IllegalArgumentException("no such message mode");
+		}
+	}
+
+	private String getSubMessageConsole(String mode, String msg) {
+		switch (mode) {
+			case "demo":
+				return "Received: " + msg.replaceFirst("host.*: random number ", "");
+			case "detail":
+				return "Received: " + msg;
+			default:
+				throw new IllegalArgumentException("no such message mode");
+		}
+	}
+
 	private void clearConsole() {
-	    System.out.println( "\033[2J");		// clear the screen
-	    System.out.println( "\033[0;0H");	// jump to 0,0
+		System.out.println( "\033[2J");		// clear the screen
+		System.out.println( "\033[0;0H");	// jump to 0,0
 	}
 
 	private boolean isMyCommand(Message<Object> message) {
