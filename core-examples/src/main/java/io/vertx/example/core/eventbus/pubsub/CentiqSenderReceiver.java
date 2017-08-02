@@ -44,10 +44,10 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		vertx.setPeriodic(
 				CentiqUtil.getRandom(20000, 5000),
 				v -> {
-					String msg = CentiqMessage.createPubMsg(MODE + "-create-pub-msg", this);
+					String msg = CentiqMessage.createPubMsg(MODE, this);
 					CentiqUtil.clearConsole();
 					System.out.println(
-							ANSI_RED + CentiqMessage.getConsoleMsg(MODE + "-console-pub-msg", msg) + ANSI_RESET);
+							ANSI_RED + CentiqMessage.getConsolePubMsg(MODE, msg) + ANSI_RESET);
 					eb.publish(eb_addr, msg);
 				});
 
@@ -59,7 +59,7 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 				return;
 			}
 			CentiqUtil.clearConsole();
-			System.out.println(CentiqMessage.getConsoleMsg(MODE + "-console-sub-msg", message.body().toString()));
+			System.out.println(CentiqMessage.getConsoleSubMsg(MODE, message.body().toString()));
 		});
 
 		// introduce self
@@ -77,45 +77,61 @@ class CentiqMessage {
 	static final String DEMO       = "demo";
 	static final String DETAIL     = "detail";
 
+	static final String CREATE_PUB_MSG     = "create-pub-msg";
+	static final String CONSOLE_PUB_MSG    = "console-pub-ms";
+	static final String CONSOLE_SUB_MSG    = "console-sub-msg";
+
 	private static final Map<String, Function<Object, String>> mapImpl;
 	static {
 		Map<String, Function<Object, String>> m = new HashMap<>();
 
-		m.put(DEMO + "-create-pub-msg",
+		m.put(getCommand(DEMO, CREATE_PUB_MSG),
 				obj -> String.format("%s: %s %s",
 						getObjNameForHuman(obj),
 						"random number",
 						CentiqUtil.getRandom(1000, 100)) );
-		m.put(DETAIL + "-create-pub-msg",
+		m.put(getCommand(DETAIL, CREATE_PUB_MSG),
 				obj -> String.format("%s: %s %s %s",
 						getObjNameForHuman(obj),
 						"\"Change schedule of memory agent to every",
 						CentiqUtil.getRandom(600, 10),
 						"seconds\"") );
-		m.put(DEMO + "-console-pub-msg",
+		m.put(getCommand(DEMO, CONSOLE_PUB_MSG),
 				msg -> msg.toString().replaceFirst("host.*: ", "Publishing ") );
-		m.put(DETAIL + "-console-pub-msg", msg -> msg.toString() );
-		m.put(DEMO + "-console-sub-msg",
+		m.put(getCommand(DETAIL, CONSOLE_PUB_MSG), msg -> msg.toString() );
+		m.put(getCommand(DEMO, CONSOLE_SUB_MSG),
 				msg -> "Received: " + msg.toString().replaceFirst("host.*: random number ", "") );
-		m.put(DETAIL + "-console-sub-msg", msg -> "Received: " + msg.toString() );
+		m.put(getCommand(DETAIL, CONSOLE_SUB_MSG), msg -> "Received: " + msg.toString() );
 
 		mapImpl = Collections.unmodifiableMap(m);
 	}
 
-	static String createPubMsg(String command, Object obj) {
-		checkArg(command);
-		return mapImpl.get(command).apply(obj);
+	static String createPubMsg(String mode, Object obj) {
+		String cmd = getCommand(mode, CREATE_PUB_MSG);
+		checkArg(cmd);
+		return mapImpl.get(cmd).apply(obj);
 	}
 
-	static String getConsoleMsg(String command, String msg) {
-		checkArg(command);
-		return mapImpl.get(command).apply(msg);
+	static String getConsolePubMsg(String mode, String msg) {
+		String cmd = getCommand(mode, CONSOLE_PUB_MSG);
+		checkArg(cmd);
+		return mapImpl.get(cmd).apply(msg);
+	}
+
+	static String getConsoleSubMsg(String mode, String msg) {
+		String cmd = getCommand(mode, CONSOLE_SUB_MSG);
+		checkArg(cmd);
+		return mapImpl.get(cmd).apply(msg);
 	}
 
 	private static void checkArg(String command) {
 		if (! mapImpl.containsKey(command)) {
 			throw new IllegalArgumentException("Bad argument: " + command);
 		}
+	}
+
+	static String getCommand(String mode, String command) {
+		return mode + "-" + command;
 	}
 
 	static boolean isMyCommand(Message<Object> message, Object obj) {
