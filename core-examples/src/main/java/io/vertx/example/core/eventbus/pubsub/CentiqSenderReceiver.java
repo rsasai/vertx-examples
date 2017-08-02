@@ -5,6 +5,11 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.example.util.Runner;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
 /**
  * @author rsasai
  * @since  27.07.17
@@ -19,7 +24,15 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 	public static final String ANSI_RED = "\u001B[31m";
 	public static final String ANSI_RESET = "\u001B[0m";
 
-	private static final String MODE = "demo";				// demo, detail, etc.
+	private static final int mode = 1;			// 1: demo 2: detail
+	private static final String MODE;
+	static {
+		switch (mode) {
+			case 1:   MODE = CentiqMessage.DEMO;         break;
+			case 2:   MODE = CentiqMessage.DETAIL;       break;
+			default:  MODE = "bug";                      break;
+		}
+	}
 
 	@Override
 	public void start() throws Exception {
@@ -31,9 +44,10 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 		vertx.setPeriodic(
 				CentiqUtil.getRandom(20000, 5000),
 				v -> {
-					String msg = CentiqMessage.createPubMessage(MODE, this);
+					String msg = CentiqMessage.createPubMsg(MODE + "-create-pub-msg", this);
 					CentiqUtil.clearConsole();
-					System.out.println(ANSI_RED + CentiqMessage.getPubMessageConsole(MODE, msg) + ANSI_RESET);
+					System.out.println(
+							ANSI_RED + CentiqMessage.getConsoleMsg(MODE + "-console-pub-msg", msg) + ANSI_RESET);
 					eb.publish(eb_addr, msg);
 				});
 
@@ -45,7 +59,7 @@ public class CentiqSenderReceiver extends AbstractVerticle {
 				return;
 			}
 			CentiqUtil.clearConsole();
-			System.out.println(CentiqMessage.getSubMessageConsole(MODE, message.body().toString()));
+			System.out.println(CentiqMessage.getConsoleMsg(MODE + "-console-sub-msg", message.body().toString()));
 		});
 
 		// introduce self
@@ -60,43 +74,47 @@ public class CentiqSenderReceiver extends AbstractVerticle {
  */
 class CentiqMessage {
 
-	static String createPubMessage(String mode, Object obj) {
-		switch (mode) {
-			case "demo":
-				return String.format("%s: %s %s",
+	static final String DEMO       = "demo";
+	static final String DETAIL     = "detail";
+
+	private static final Map<String, Function<Object, String>> mapImpl;
+	static {
+		Map<String, Function<Object, String>> m = new HashMap<>();
+
+		m.put(DEMO + "-create-pub-msg",
+				obj -> String.format("%s: %s %s",
 						getObjNameForHuman(obj),
 						"random number",
-						CentiqUtil.getRandom(1000, 100));
-			case "detail":
-				return String.format("%s: %s %s %s",
+						CentiqUtil.getRandom(1000, 100)) );
+		m.put(DETAIL + "-create-pub-msg",
+				obj -> String.format("%s: %s %s %s",
 						getObjNameForHuman(obj),
 						"\"Change schedule of memory agent to every",
 						CentiqUtil.getRandom(600, 10),
-						"seconds\"");
-			default:
-				throw new IllegalArgumentException("no such message mode");
-		}
+						"seconds\"") );
+		m.put(DEMO + "-console-pub-msg",
+				msg -> msg.toString().replaceFirst("host.*: ", "Publishing ") );
+		m.put(DETAIL + "-console-pub-msg", msg -> msg.toString() );
+		m.put(DEMO + "-console-sub-msg",
+				msg -> "Received: " + msg.toString().replaceFirst("host.*: random number ", "") );
+		m.put(DETAIL + "-console-sub-msg", msg -> "Received: " + msg.toString() );
+
+		mapImpl = Collections.unmodifiableMap(m);
 	}
 
-	static String getPubMessageConsole(String mode, String msg) {
-		switch (mode) {
-			case "demo":
-				return msg.replaceFirst("host.*: ", "Publishing ");
-			case "detail":
-				return msg;
-			default:
-				throw new IllegalArgumentException("no such message mode");
-		}
+	static String createPubMsg(String command, Object obj) {
+		checkArg(command);
+		return mapImpl.get(command).apply(obj);
 	}
 
-	static String getSubMessageConsole(String mode, String msg) {
-		switch (mode) {
-			case "demo":
-				return "Received: " + msg.replaceFirst("host.*: random number ", "");
-			case "detail":
-				return "Received: " + msg;
-			default:
-				throw new IllegalArgumentException("no such message mode");
+	static String getConsoleMsg(String command, String msg) {
+		checkArg(command);
+		return mapImpl.get(command).apply(msg);
+	}
+
+	private static void checkArg(String command) {
+		if (! mapImpl.containsKey(command)) {
+			throw new IllegalArgumentException("Bad argument: " + command);
 		}
 	}
 
